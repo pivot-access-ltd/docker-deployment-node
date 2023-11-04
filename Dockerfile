@@ -1,19 +1,21 @@
 # syntax=docker/dockerfile:1
 
-FROM ghcr.io/linuxserver/baseimage-alpine:3.18
+FROM ghcr.io/linuxserver/baseimage-ubuntu:jammy
 
 # set version label
 ARG BUILD_DATE
 ARG VERSION
 ARG OPENSSH_RELEASE
-LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="aptalca"
+LABEL build_version="PivotAccessLtd version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL maintainer="omar.bassam@pivotaccess.com"
 
 RUN \
   echo "**** install runtime packages ****" && \
-  apk add --no-cache --upgrade \
+  apt-get update && \
+  apt-get install --upgrade -y \
     logrotate \
     nano \
+    vim \
     netcat-openbsd \
     sudo && \
   echo "**** install openssh-server ****" && \
@@ -21,14 +23,21 @@ RUN \
     OPENSSH_RELEASE=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/v3.18/main/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp && \
     awk '/^P:openssh-server-pam$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://'); \
   fi && \
-  apk add --no-cache \
-    openssh-client==${OPENSSH_RELEASE} \
-    openssh-server-pam==${OPENSSH_RELEASE} \
-    openssh-sftp-server==${OPENSSH_RELEASE} && \
+  apt-get install --upgrade -y \
+    openssh-client \
+    openssh-server \
+    openssh-sftp-server && \
   echo "**** setup openssh environment ****" && \
   sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config && \
   usermod --shell /bin/bash abc && \
+  echo "**** cleanup ****" && \
+  apt-get autoremove && \
+  apt-get clean && \
   rm -rf \
+    /tmp/* \
+    /var/lib/apt/lists/* \
+    /var/tmp/* \
+    /var/log/* \
     /tmp/* \
     $HOME/.cache
 
